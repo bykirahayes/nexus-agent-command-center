@@ -1,70 +1,74 @@
 # Supabase setup for Nexus AI
 
-This guide creates a database/auth backend that is independent of Lovable. You own the Supabase organisation, project, billing and credentials. The Vercel app remains private behind the Vercel deployment protection configured on the project.
+This guide documents the separately managed Supabase backend for Nexus AI. The Supabase project is owned by the "info@thekianprice.co.uk's Org" organisation, independent of Lovable.
 
-## 1. Create the new project
+## 1. Project
 
-1. Sign in to the Supabase dashboard using an account you control.
-2. Create a new project named `nexus-ai`.
-3. Choose a region close to your users and Vercel deployment. Keep the database password in a password manager.
-4. Wait for the project to finish provisioning.
+- Project: nexus-ai
+- Project ref: vujhozqroopxjaguzihe
+- Region: eu-west-2 (London)
+- Plan: Free
 
-Do not use the old Lovable-linked Supabase project for this cutover.
+The old Lovable-linked Supabase project is intentionally left untouched until the new sign-in and workspace have been verified.
 
-## 2. Apply the database schema
+## 2. Database schema
 
-From a local clone of this repository:
+The following migrations are applied and tracked in supabase/migrations/:
 
-```sh
+- 20261118000000_initial_schema.sql — application tables, row-level security, signup trigger and demo workspace seeding.
+- 20261118130524_security_hardening.sql — restricts execution of the signup trigger function, optimises owner policies and adds foreign-key indexes.
+
+To link a local clone and verify the migration history:
+
+\`\`\`sh
 bun install
 npx supabase login
-npx supabase link --project-ref <new-project-ref>
-npx supabase db push
-```
+npx supabase link --project-ref vujhozqroopxjaguzihe
+npx supabase migration list
+\`\`\`
 
-The migration creates the application tables, row-level security policies and a signup trigger that seeds a demo workspace for each new user.
+Run \`npx supabase db push\` only when the local migration files are the intended source of truth and the remote migration history has been checked first.
 
-Before proceeding, check the migration history in the Supabase dashboard and confirm that `20261118000000_initial_schema.sql` was applied successfully.
+All nine public application tables have row-level security enabled. Supabase's security advisor reports no current security findings.
 
-## 3. Configure the app's environment variables
+## 3. Vercel environment variables
 
-In Supabase Project Settings → API, copy the project URL and publishable key (or legacy anon key).
-
-In Vercel → `nexus-ai` → Settings → Environment Variables, add:
+These values are already configured on the Vercel project nexus-ai for Production, Preview and Development:
 
 | Key | Value |
 | --- | --- |
-| `VITE_SUPABASE_URL` | New Supabase project URL |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | New project's publishable key |
-| `SUPABASE_URL` | Same new project URL |
-| `SUPABASE_PUBLISHABLE_KEY` | Same new project's publishable key |
+| VITE_SUPABASE_URL | New Supabase project URL |
+| VITE_SUPABASE_PUBLISHABLE_KEY | New project's publishable key |
+| SUPABASE_URL | Same new project URL |
+| SUPABASE_PUBLISHABLE_KEY | Same new project's publishable key |
 
-Set them for Production. Add them to Preview and Development only if those environments should use the same database. For a safer arrangement, use separate Supabase projects for production and preview.
+The publishable key is intended for client use; row-level security protects the data. The service-role key is not required for current user-facing flows and has not been added to Vercel.
 
-The service-role key is not required for the current user-facing data flows. Do not add it unless a future trusted server-side admin function requires it.
+## 4. Authentication URLs — finish in Supabase Dashboard
 
-## 4. Configure authentication URLs
+Open [Nexus AI Authentication URL Configuration](https://supabase.com/dashboard/project/vujhozqroopxjaguzihe/auth/url-configuration) and set:
 
-In Supabase → Authentication → URL Configuration:
+- Site URL: https://nexus-ai-tau-teal.vercel.app
+- Additional Redirect URL: https://nexus-ai-tau-teal.vercel.app/overview
+- Local development: http://localhost:3000/**
+- Vercel deployment previews (optional): https://nexus-*-info-58135976.vercel.app/**
 
-- Site URL: `https://nexus-ai-tau-teal.vercel.app`
-- Redirect URL: `https://nexus-ai-tau-teal.vercel.app/overview`
-- Local development redirect: `http://localhost:3000/overview`
+The Site URL is the base production origin. Redirect URLs are separate allow-list entries used by email confirmation and OAuth flows. Google sign-in remains optional and requires an OAuth client configured in Supabase.
 
-If you add a custom domain later, add its `/overview` callback URL too.
+## 5. Production deployment
 
-Email/password sign-in works through Supabase Auth. Google sign-in is optional and requires your own Google OAuth client credentials configured in Supabase's provider settings.
+The Vercel production deployment is built from the repository's main branch in the London function region. Its stable URL is:
 
-## 5. Redeploy and create your account
+https://nexus-ai-tau-teal.vercel.app
 
-After adding the environment variables, trigger a production redeployment in Vercel. Open the production URL, choose **Sign up**, create your account and confirm the email if confirmation is enabled.
+After the Auth URL configuration is saved, open the site, create a new account and confirm the email if confirmation is enabled. The signup trigger seeds a demo workspace. Check that the Overview page loads and that a draft task can be created before retiring the old backend.
 
-The database trigger seeds the new user with demo agents, tasks, messages, workflows and a sample approval. Confirm the Overview page loads and that you can create a draft task before retiring the old backend.
+The Vercel project has deployment SSO protection enabled. This is separate from Nexus AI's own application authentication.
 
 ## Existing data and account cutover
 
-The old Lovable-linked backend was checked before writing this guide. It contained one auth account and seeded demo records: four agents, four tasks, six task messages, four workflows and one approval. It had no configured provider records, browser sessions or domain permissions.
+The old Lovable-linked backend was checked before the migration. It contained one auth account and seeded demo records: four agents, four tasks, six task messages, four workflows and one approval. It had no configured provider records, browser sessions or domain permissions.
 
-The old auth account is not automatically transferable by this setup. Create a fresh account in the new project; the migration re-seeds the demo workspace. No API keys, passwords, provider credentials or browser session data are copied.
+The old auth account is not automatically transferred. Create a fresh account in the new project; the signup trigger seeds a new demo workspace. No passwords, provider API keys or browser session data are copied.
 
-Keep the old backend until the new sign-in and workspace are verified. Then revoke/rotate old credentials and delete the old Lovable project from its dashboard if you no longer need it.
+Keep the old backend until the new sign-in and workspace are verified. Then revoke/rotate old credentials and delete the old Lovable project from its dashboard only if you no longer need it.
