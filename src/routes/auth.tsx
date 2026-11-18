@@ -3,7 +3,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Hexagon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -29,9 +28,13 @@ function AuthPage() {
     }
   }
   async function google() {
-    const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (r.error) { toast.error("Google sign-in failed"); return; }
-    if (!r.redirected) navigate({ to: "/overview" });
+    setBusy(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    setBusy(false);
+    if (error) toast.error(error.message);
   }
   return (
     <div className="surface-grid flex min-h-screen items-center justify-center px-4">
