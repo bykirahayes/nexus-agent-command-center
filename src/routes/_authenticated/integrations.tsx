@@ -1,10 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ExternalLink, Plug, ShieldCheck, Workflow } from "lucide-react";
+import { ExternalLink, ShieldCheck, Workflow } from "lucide-react";
 import { PageHeader, Panel, Pill } from "@/components/nexus/bits";
 import { PROVIDERS } from "@/lib/providers/catalog";
 import { getProviderSecretStatus } from "@/lib/providers/providers.functions";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+
+const METHOD_LABEL: Record<string, string> = {
+  vercel_gateway: "Vercel AI Gateway",
+  api_key: "API key",
+  oauth: "OAuth",
+  browser_limited: "Browser session",
+  unavailable: "Unavailable",
+};
 
 export const Route = createFileRoute("/_authenticated/integrations")({
   head: () => ({ meta: [{ title: "Integrations — Nexus AI" }] }),
@@ -76,7 +84,7 @@ function IntegrationsPage() {
                   <h2 className="font-semibold">{provider.name}</h2>
                   <p className="mt-1 text-xs text-muted-foreground">{provider.vendor}</p>
                 </div>
-                <Pill>{provider.methods.join(" / ")}</Pill>
+                <Pill>{provider.methods.map((method) => METHOD_LABEL[method] ?? method).join(" / ")}</Pill>
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {provider.capabilities.map((capability) => (
