@@ -176,11 +176,18 @@ export async function orchestrateTask(
       runs.push(run);
       if (run.status === "completed") context = [context, `### ${run.agentName}\n${run.text}`].filter(Boolean).join("\n\n");
     }
-    return { mode: task.mode, status: resultStatus(runs), runs, synthesis: context || undefined };
+    return {
+      mode: task.mode,
+      status: resultStatus(runs),
+      runs,
+      ...(context ? { synthesis: context } : {}),
+    };
   }
 
   // Lead + reviewers: first selected agent leads, remaining agents review, then the lead synthesizes.
-  const [lead, ...reviewers] = task.agents;
+  const lead = task.agents[0];
+  if (!lead) throw new OrchestrationError("Select at least one agent before execution.");
+  const reviewers = task.agents.slice(1);
   const leadRun = await runAgent(task, lead, adapters);
   if (leadRun.status === "failed") {
     return { mode: task.mode, status: "failed", runs: [leadRun] };
@@ -207,7 +214,8 @@ export async function orchestrateTask(
     mode: task.mode,
     status: resultStatus(runs),
     runs,
-    synthesis: finalRun.status === "completed" ? finalRun.text : undefined,
-    synthesisAgentId: finalRun.status === "completed" ? lead.id : undefined,
+    ...(finalRun.status === "completed"
+      ? { synthesis: finalRun.text, synthesisAgentId: lead.id }
+      : {}),
   };
 }
