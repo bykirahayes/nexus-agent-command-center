@@ -17,7 +17,7 @@ export interface ProviderAdapter {
 export class NotConfiguredError extends Error {
   constructor(provider: string) {
     super(
-      \`Provider "\${provider}" has no active connection. Check the Vercel AI Gateway connection or configure a supported provider adapter.\`,
+      "Provider \"" + provider + "\" has no active connection. Check the Vercel AI Gateway connection or configure a supported provider adapter.",
     );
     this.name = "NotConfiguredError";
   }
