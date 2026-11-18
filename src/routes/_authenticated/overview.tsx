@@ -28,7 +28,7 @@ function OverviewPage() {
   const metrics = [
     { label: "Agents", value: agents.data?.length ?? 0, icon: Bot, detail: "Configured agents" },
     { label: "Providers", value: connected, icon: Plug, detail: "Connected accounts" },
-    { label: "Active tasks", value: running + queued, icon: Activity, detail: `${running} running · ${queued} queued` },
+    { label: "Active tasks", value: running + queued, icon: Activity, detail: running + " running · " + queued + " queued" },
     { label: "Awaiting approval", value: pending, icon: ShieldCheck, detail: "Human review required" },
   ];
   return (
@@ -44,12 +44,12 @@ function OverviewPage() {
             <div className="space-y-3">{(tasks.data ?? []).slice(0, 6).map((task) => <div key={task.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3 last:border-0 last:pb-0"><div className="min-w-0"><p className="truncate text-sm font-medium">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{timeAgo(task.created_at)}</p></div><StatusBadge status={task.status} /></div>)}</div>}
         </Panel>
         <div className="space-y-4">
-          <Panel title="System readiness"><div className="space-y-3 text-sm"><div className="flex justify-between"><span className="text-muted-foreground">Provider adapters</span><span className="text-warning">Not implemented</span></div><div className="flex justify-between"><span className="text-muted-foreground">Browser companion</span><span className="text-warning">Not connected</span></div><div className="flex justify-between"><span className="text-muted-foreground">Workflow execution</span><span className="text-warning">Draft only</span></div><div className="flex justify-between"><span className="text-muted-foreground">Approval gates</span><span className="text-primary">UI available</span></div></div></Panel>
+          <Panel title="System readiness"><div className="space-y-3 text-sm"><div className="flex justify-between"><span className="text-muted-foreground">Provider adapters</span><span className="text-primary">Vercel AI Gateway routes</span></div><div className="flex justify-between"><span className="text-muted-foreground">Browser companion</span><span className="text-warning">Not connected</span></div><div className="flex justify-between"><span className="text-muted-foreground">Workflow execution</span><span className="text-warning">UI not wired yet</span></div><div className="flex justify-between"><span className="text-muted-foreground">Approval gates</span><span className="text-primary">UI available</span></div></div></Panel>
           <Panel title="Operating costs"><div className="flex items-center gap-3"><CircleDollarSign className="size-5 text-muted-foreground" /><div><p className="text-2xl font-semibold">£0.00</p><p className="text-xs text-muted-foreground">No provider usage recorded</p></div></div></Panel>
         </div>
       </div>
       <Panel title="Approvals requiring attention">{pending === 0 ? <p className="text-sm text-muted-foreground">No pending approvals.</p> : <p className="text-sm">{pending} action(s) are waiting for your decision.</p>}</Panel>
-      <p className="text-xs text-muted-foreground">Usage and statuses reflect saved records. No model work is executed until provider adapters and orchestration are configured.</p>
+      <p className="text-xs text-muted-foreground">Provider model routing is available through Vercel AI Gateway. Saved task execution still needs to be wired into the UI before tasks invoke the orchestration engine.</p>
     </div>
   );
 }
