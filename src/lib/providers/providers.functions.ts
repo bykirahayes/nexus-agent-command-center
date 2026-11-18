@@ -1,10 +1,19 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-// Returns only booleans: whether each provider's secret exists server-side. Never the value.
+// Exposes readiness only. Tokens themselves are never returned to the browser.
 export const getProviderSecretStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
     const { adapters } = await import("./adapters.server");
-    return Object.fromEntries(Object.values(adapters).map((a) => [a.key, a.isConfigured()]));
+    const gatewayAvailable = Boolean(
+      process.env["AI_GATEWAY_API_KEY"] || process.env["VERCEL_OIDC_TOKEN"],
+    );
+
+    return {
+      gateway: gatewayAvailable,
+      providers: Object.fromEntries(
+        Object.values(adapters).map((adapter) => [adapter.key, adapter.isConfigured()]),
+      ),
+    };
   });
