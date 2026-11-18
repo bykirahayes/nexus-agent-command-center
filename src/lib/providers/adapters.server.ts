@@ -39,7 +39,11 @@ const GATEWAY_MODEL_ALIASES: Record<string, Record<string, string>> = {
 
 type GatewayResponse = {
   model?: string;
-  choices?: Array<{ message?: { content?: string | Array<{ type?: string; text?: string }> } }>;
+  choices?: Array<{
+    message?: {
+      content?: string | Array<{ type?: string; text?: string }>;
+    };
+  }>;
   usage?: {
     prompt_tokens?: number;
     completion_tokens?: number;
@@ -58,12 +62,12 @@ function resolveGatewayModel(providerKey: string, requestedModel: string): strin
   return GATEWAY_MODEL_ALIASES[providerKey]?.[requestedModel] ?? GATEWAY_MODEL_DEFAULTS[providerKey] ?? requestedModel;
 }
 
-function extractText(content: GatewayResponse["choices"] extends Array<infer T> ? T extends { message?: infer M } ? M extends { content?: infer C } ? C : never : never : never): string {
+function extractText(content: string | Array<{ type?: string; text?: string }> | undefined): string {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
     return content
       .filter((part) => part && typeof part.text === "string")
-      .map((part) => part.text)
+      .map((part) => part.text ?? "")
       .join("");
   }
   return "";
@@ -84,7 +88,7 @@ function gatewayAdapter(key: string): ProviderAdapter {
       const response = await fetch("https://ai-gateway.vercel.sh/v1/chat/completions", {
         method: "POST",
         headers: {
-          Authorization: \`Bearer \${credential}\`,
+          Authorization: "Bearer " + credential,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -98,7 +102,7 @@ function gatewayAdapter(key: string): ProviderAdapter {
       const payload = (await response.json().catch(() => null)) as GatewayResponse | null;
       if (!response.ok) {
         const detail = payload?.error?.message || response.statusText || "Unknown gateway error";
-        throw new Error(\`Vercel AI Gateway request failed (\${response.status}): \${detail}\`);
+        throw new Error("Vercel AI Gateway request failed (" + response.status + "): " + detail);
       }
 
       const content = extractText(payload?.choices?.[0]?.message?.content);
