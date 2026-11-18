@@ -2,67 +2,68 @@
 
 Nexus AI is a standalone application for coordinating AI agents, comparing model responses, managing tasks and approvals, and preparing browser-assisted workflows.
 
-**The application no longer uses Lovable runtime packages, auth helpers, telemetry, project configuration, or build tooling.** The frontend and server are built with TanStack Start, Vite and Nitro and deploy directly to Vercel or run on your own server.
+**The application has no Lovable runtime dependency.** Its frontend and server use TanStack Start, Vite and Nitro and deploy to Vercel or run on a compatible Node.js host.
 
 ## Architecture
 
-- **Application hosting:** Vercel (TanStack Start + Nitro) or any compatible Node.js host.
+- **Application hosting:** Vercel (TanStack Start + Nitro) or a compatible Node.js host.
 - **Source control:** GitHub.
-- **Authentication and data:** a Supabase project owned and configured independently of Lovable. Auth and database access use the standard Supabase client and Row Level Security.
+- **Authentication and data:** a Supabase project created and controlled independently of Lovable. The app uses Supabase Auth, PostgREST and Row Level Security.
 - **AI execution:** server-side provider adapters. Provider credentials belong in server environment variables only.
-- **Browser automation:** a separate, locally operated companion. The web application does not extract browser passwords or cookies.
+- **Browser automation:** a separate, locally operated companion. The web app does not extract browser passwords or cookies.
 
-The Supabase project is a separate service; it is not a Lovable dependency. The Vercel project and application code can be deployed independently of the Supabase dashboard.
+Supabase is a separate database/auth service, not a Lovable runtime or Lovable-managed project. Vercel and the app source can be deployed independently of the Supabase dashboard.
 
-## Vercel deployment
+## Production deployment
 
-1. Import `bykirahayes/nexus-agent-command-center` into Vercel and select the `nexus-ai` project.
-2. Set the framework to **TanStack Start**. The repository includes `vercel.json` and the native `nitro/vite` configuration.
-3. Add the environment variables listed below to Preview and Production.
-4. Deploy from the Git-connected repository. Pushes to the production branch deploy production; pull requests/branches get previews.
+- **Vercel project:** `nexus-ai`
+- **Production URL:** https://nexus-ai-tau-teal.vercel.app
+- **GitHub repository:** https://github.com/bykirahayes/nexus-agent-command-center
 
-Use Node.js 22 or later. The repository uses Bun and includes `bun.lock`.
+The repository is connected to Vercel. Pushes to `main` trigger production deployments; branches and pull requests receive previews. The Vercel project currently keeps deployment protection enabled, which is appropriate for a private command centre.
 
-## Supabase setup
+The project is configured for TanStack Start with Nitro. Use Node.js 22 or later and Bun (the repository includes `bun.lock`).
 
-Create or select a Supabase project in an account you control. Do not use the old Lovable-managed project for a fresh standalone installation unless you have intentionally chosen to keep it.
+## Database and authentication setup
 
-For a fresh database, apply the checked-in migration:
+Create a **new Supabase project in an account you control**. Do not reconnect this app to the old Lovable-managed database.
 
-```sh
-supabase login
-supabase link --project-ref <your-project-ref>
-supabase db push
-```
+Detailed steps are in [docs/supabase-setup.md](docs/supabase-setup.md). In summary:
 
-For a self-hosted Supabase stack, initialise and start the stack with the Supabase CLI/Docker, then apply the same migration to that local instance.
+1. Create the new Supabase project.
+2. Link this repository to it with the Supabase CLI and apply the checked-in migration.
+3. Add the new project's URL and publishable key to Vercel environment variables.
+4. Set the Supabase Auth site URL and redirect allow-list to the production URL.
+5. Redeploy and create your new Nexus account.
 
-In Supabase Authentication settings, configure the site URL and allowed redirect URLs for your Vercel deployment and local development. Enable Google OAuth only after you have configured your own Google OAuth credentials in Supabase. Email/password sign-in works through Supabase Auth.
+New accounts automatically receive the demo workspace from the database migration. The original Lovable-linked database currently contains one auth account and seeded demo records (agents, tasks, messages and workflows), but no connected provider credentials or browser sessions. The original auth account is not automatically carried to the new project; create a fresh account after cutover.
 
 ## Environment variables
 
-Set these in Vercel Project Settings → Environment Variables. For local development, copy `.env.example` to `.env`.
+Set the following in Vercel Project Settings → Environment Variables for Production, Preview and Development as appropriate. For local development, copy `.env.example` to `.env`.
 
 | Variable | Scope | Purpose |
 | --- | --- | --- |
-| `VITE_SUPABASE_URL` | Browser + server | Public Supabase project URL |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Browser + server | Supabase publishable/anon key |
+| `VITE_SUPABASE_URL` | Browser | Public Supabase project URL |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Browser | Supabase publishable/anon key |
 | `SUPABASE_URL` | Server | Supabase project URL |
-| `SUPABASE_PUBLISHABLE_KEY` | Server | Server-side publishable/anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server only | Admin operations where explicitly required |
-| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc. | Server only | Optional provider credentials |
+| `SUPABASE_PUBLISHABLE_KEY` | Server | Supabase publishable/anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server only; optional | Reserved for trusted server-side admin operations. Never expose it to the browser. |
+| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc. | Server only; optional | Provider credentials (live adapters are not yet implemented) |
 
-You may use the equivalent `SUPABASE_ANON_KEY` / `VITE_SUPABASE_ANON_KEY` variable names for the public key. Never add the service-role key or AI provider keys to `VITE_*` variables or commit them to Git.
+The app also accepts `SUPABASE_ANON_KEY` and `VITE_SUPABASE_ANON_KEY` as alternatives for the publishable key. Never prefix service-role or AI provider credentials with `VITE_`.
 
 ## Local development
 
-Requirements: Node.js 22+, Bun, Docker (only if running Supabase locally), and the Supabase CLI.
+Requirements: Node.js 22+, Bun, Docker (for a local Supabase stack), and the Supabase CLI.
 
 ```sh
 cp .env.example .env
 bun install
 bun run dev
 ```
+
+To run Supabase locally, use `supabase start`, then copy the local API URL and anon/publishable key from `supabase status` into `.env`.
 
 ## Validation
 
@@ -80,6 +81,7 @@ bun run build
 - The browser companion is separate and must be explicitly paired and authorised before it can operate on websites.
 - Consequential browser actions (sending, publishing, purchases, deletions, settings changes and deployments) must pause for human approval.
 
-## Migration note
+## Retiring the old Lovable project
 
-The previous Lovable-generated `.env` file was removed from the current source in an earlier commit. Git history is not rewritten. Review the old Supabase project and rotate/revoke any credentials that may still be active before retiring that project. Export or migrate existing user data before deleting the old backend.
+Do not delete the old project or backend until the new deployment has been tested. The previous Lovable-generated `.env` file was removed from the current source in an earlier commit, but Git history is not rewritten. Review and revoke any old credentials after the new database is live. Once the new account and workspace have been verified, the old Lovable project can be deleted from the Lovable dashboard.
+

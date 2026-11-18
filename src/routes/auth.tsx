@@ -22,7 +22,7 @@ function AuthPage() {
       setBusy(false); if (error) { toast.error(error.message); return; }
       navigate({ to: "/overview" });
     } else {
-      const { error } = await supabase.auth.signUp({ email, password: pw, options: { emailRedirectTo: window.location.origin } });
+      const { error } = await supabase.auth.signUp({ email, password: pw, options: { emailRedirectTo: `${window.location.origin}/overview` } });
       setBusy(false); if (error) { toast.error(error.message); return; }
       toast.success("Check your email to confirm your account.");
     }
@@ -31,7 +31,7 @@ function AuthPage() {
     setBusy(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: `${window.location.origin}/overview` },
     });
     setBusy(false);
     if (error) toast.error(error.message);
