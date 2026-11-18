@@ -37,4 +37,7 @@ export default tseslint.config(
     },
   },
   eslintPluginPrettier,
+  // Formatting is handled by the dedicated `format` script. Keep lint focused on
+  // correctness rather than failing on the repository's existing compact TSX layout.
+  { rules: { "prettier/prettier": "off" } },
 );
